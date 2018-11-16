@@ -1,0 +1,84 @@
+---
+title: "A or CNAME?"
+author:
+  - Thomas Peterson
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
+library(ggplot2)
+library(knitr)
+```
+# Introduction
+In this notebook we analyse each domain in the Alex top 1 million domain list, understanding the record type for `www` for every domain, and perform basic analysis on the CNAME records as well as authoritive name servers.
+
+## Considerations when interpretting this data
+All queries in the supplied data set were captured over approximately two days between November 12<sup>th</sup> and 13<sup>th</sup> 2018, and were performed from a host inside [AS2818](https://www.peeringdb.com/asn/2818), and thus values may be skewed due to EDNS Client Subnet.
+
+# Record type breakdown
+Each one of the domains was queried for a `www` subdomain, either as A or CNAME, in addition to a query for nameservers for the domain.
+
+* `NXDOMAIN`: The domain exists and has delegated nameservers, but does not have a record for `www.`
+* `SERVFAIL`: The domain may or may not exist, and does not have delegated nameservers
+* `CNAME`: A CNAME record was returned for `www.`
+* `DNAME`: A DNAME record was returned for `www.`
+* `A`: An A record was returned for `www.`
+
+The `NXDOMAIN` largely exist due to them being subdomains themselves, or domains not intended for users to put into address bars in browsers (e.g. `bp.blogspot.com`) but used for serving other content. There are also several that do not intended on serving a web page, but are linked to (e.g. `redd.it`).
+
+```{r results="hide"}
+value   = c()
+percent = c()
+record  = c()
+
+# system calls here because they are faster and easier for me
+total_nx <- as.numeric(system("ggrep -v ',IN,' data/top1m_cnames.csv | wc -l", intern=TRUE))
+total_sf <- as.numeric(system("ggrep ',,$'     data/top1m_cnames.csv | wc -l", intern=TRUE))
+totals <- system("grep ',IN' data/top1m_cnames.csv | awk -F, '{print $5}' | sort | uniq -c", intern=TRUE)
+
+for(type in totals){ 
+  type_split <- strsplit(trimws(type), " ")
+  value   <- c(value, type_split[[1]][1])
+  percent <- c(percent, as.numeric(type_split[[1]][1]) / 10000)
+  record  <- c(record, type_split[[1]][2])
+}
+
+# NXDOMAIN values
+value   <- c(value, as.numeric(total_nx))
+percent <- c(percent, as.numeric(total_nx) / 10000)
+record  <- c(record, "NXDOMAIN")
+
+# SERVFAIL values
+value   <- c(value, as.numeric(total_sf))
+percent <- c(percent, as.numeric(total_sf) / 10000)
+record  <- c(record, "SERVFAIL")
+
+record_totals <- data.frame(
+  record  = record,
+  value   = value,
+  percent = percent
+)
+
+```
+
+```{r}
+bp <- ggplot(record_totals, aes(x="", y=percent, fill=record))+
+geom_bar(width=1, stat="identity")
+bp + 
+  coord_polar("y", start=0) +
+  scale_fill_brewer(palette="Paired", name="Record Type") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks   = element_blank(),
+        axis.text    = element_blank(),
+        panel.border = element_blank(),
+        panel.grid   = element_blank())
+```
+Figure 1: Distribution of record types
+```{r}
+kable(record_totals)
+```
