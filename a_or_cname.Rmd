@@ -14,7 +14,7 @@ library(knitr)
 library(data.table)
 library(dplyr)
 
-recordData <- fread("data/top1m-cnames_filtered.csv",
+recordData <- fread("data/top1m_cnames.csv",
                 header=FALSE,
                 verbose=TRUE,
                 col.names=c("domain", "www", "class", "recordType", "answer", "ns1", "ns2", "ns3", "ns4"),
@@ -43,8 +43,8 @@ value   = c()
 percent = c()
 record  = c()
 
-total_sf <- recordData %>% filter(class == "") %>% summarize(count=n())
-total_nx <- recordData %>% filter(class != "" & class != "IN") %>% summarize(count=n())
+totalServfail <- recordData %>% filter(class == "") %>% summarize(count=n())
+totalNxDomain <- recordData %>% filter(class != "" & class != "IN") %>% summarize(count=n())
 
 totals <- recordData %>% group_by(recordType) %>% filter(class == "IN") %>% summarize(count=n())
 
@@ -56,16 +56,16 @@ for(i in 1:nrow(totals)){
 }
 
 # NXDOMAIN values
-value   <- c(value, as.numeric(total_nx$count))
-percent <- c(percent, as.numeric(total_nx$count) / 10000)
+value   <- c(value, as.numeric(totalNxDomain$count))
+percent <- c(percent, as.numeric(totalNxDomain$count) / 10000)
 record  <- c(record, "NXDOMAIN")
 
 # SERVFAIL values
-value   <- c(value, as.numeric(total_sf$count))
-percent <- c(percent, as.numeric(total_sf$count) / 10000)
+value   <- c(value, as.numeric(totalServfail$count))
+percent <- c(percent, as.numeric(totalServfail$count) / 10000)
 record  <- c(record, "SERVFAIL")
 
-record_totals <- data.frame(
+recordTotals <- data.frame(
   record  = record,
   value   = value,
   percent = percent
@@ -74,7 +74,7 @@ record_totals <- data.frame(
 ```
 
 ```{r}
-bp <- ggplot(record_totals, aes(x="", y=percent, fill=record))+
+bp <- ggplot(recordTotals, aes(x="", y=percent, fill=record))+
 geom_bar(width=1, stat="identity")
 bp + 
   coord_polar("y", start=0) +
@@ -89,5 +89,5 @@ bp +
 ```
 Figure 1: Distribution of record types
 ```{r}
-kable(record_totals)
+kable(recordTotals)
 ```
