@@ -11,6 +11,15 @@ output:
 ```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
 library(ggplot2)
 library(knitr)
+library(data.table)
+library(dplyr)
+
+recordData <- fread("data/top1m-cnames_filtered.csv",
+                header=FALSE,
+                verbose=TRUE,
+                col.names=c("domain", "www", "class", "recordType", "answer", "ns1", "ns2", "ns3", "ns4"),
+                fill=TRUE
+                )
 ```
 # Introduction
 In this notebook we analyse each domain in the Alex top 1 million domain list, understanding the record type for `www` for every domain, and perform basic analysis on the CNAME records as well as authoritive name servers.
@@ -34,26 +43,26 @@ value   = c()
 percent = c()
 record  = c()
 
-# system calls here because they are faster and easier for me
-total_nx <- as.numeric(system("ggrep -v ',IN,' data/top1m_cnames.csv | wc -l", intern=TRUE))
-total_sf <- as.numeric(system("ggrep ',,$'     data/top1m_cnames.csv | wc -l", intern=TRUE))
-totals <- system("grep ',IN' data/top1m_cnames.csv | awk -F, '{print $5}' | sort | uniq -c", intern=TRUE)
+total_sf <- recordData %>% filter(class == "") %>% summarize(count=n())
+total_nx <- recordData %>% filter(class != "" & class != "IN") %>% summarize(count=n())
 
-for(type in totals){ 
-  type_split <- strsplit(trimws(type), " ")
-  value   <- c(value, type_split[[1]][1])
-  percent <- c(percent, as.numeric(type_split[[1]][1]) / 10000)
-  record  <- c(record, type_split[[1]][2])
+totals <- recordData %>% group_by(recordType) %>% filter(class == "IN") %>% summarize(count=n())
+
+for(i in 1:nrow(totals)){
+  type    <- totals[i,]
+  value   <- c(value, type$count)
+  percent <- c(percent, type$count / 10000)
+  record  <- c(record, type$recordType)
 }
 
 # NXDOMAIN values
-value   <- c(value, as.numeric(total_nx))
-percent <- c(percent, as.numeric(total_nx) / 10000)
+value   <- c(value, as.numeric(total_nx$count))
+percent <- c(percent, as.numeric(total_nx$count) / 10000)
 record  <- c(record, "NXDOMAIN")
 
 # SERVFAIL values
-value   <- c(value, as.numeric(total_sf))
-percent <- c(percent, as.numeric(total_sf) / 10000)
+value   <- c(value, as.numeric(total_sf$count))
+percent <- c(percent, as.numeric(total_sf$count) / 10000)
 record  <- c(record, "SERVFAIL")
 
 record_totals <- data.frame(
