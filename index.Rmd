@@ -5,6 +5,7 @@ author:
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
   html_document:
+    toc: yes
     code_folding: hide
 ---
 
