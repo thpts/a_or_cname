@@ -40,7 +40,7 @@ Each one of the domains was queried for a `www` subdomain, either as A or CNAME,
 
 The `NXDOMAIN` largely exist due to them being subdomains themselves, or domains not intended for users to put into address bars in browsers (e.g. `bp.blogspot.com`) but used for serving other content. There are also several that do not intended on serving a web page, but are linked to (e.g. `redd.it`).
 
-```{r results="hide"}
+```{r recordTotals, results="hide"}
 value   = c()
 percent = c()
 record  = c()
@@ -75,7 +75,7 @@ recordTotals <- data.frame(
 
 ```
 
-```{r}
+```{r recordTotalsPlot}
 recordTypePlot <- ggplot(recordTotals, aes(x="", y=value, fill=record))+
 geom_bar(width=1, stat="identity")
 recordTypePlot +
@@ -100,12 +100,12 @@ recordTotals$value <- NULL
 colnames(recordTotals) <- c("Record Type", "Percentage")
 ```
 
-```{r}
+```{r recordTotalsTable}
 kable(recordTotals)
 ```
 
 ## CNAME Usage
-```{r}
+```{r cname}
 
 # FIXME: this could be done better
 cnameList <- list(
@@ -176,7 +176,7 @@ wwwToApexTotal <- recordData %>%
 
 For the records that return CNAMEs, **`r sprintf("%s", totalFoundCnames[[1]])`** records point directly at addresses that reveal information about hosting providers such as CDNs, cloud providers, or other Software as a Service offerings. **`r wwwToApexTotal`** records pointed users back to apex - i.e. www.example.com. responds with a CNAME to example.com.
 
-```{r}
+```{r cnamePlot}
 cnamePlot <- ggplot(cnameUsage, aes(x=reorder(domain,total, sum), y=total, fill=type))
 cnamePlot +
   geom_bar(stat="identity", position="dodge2") +
@@ -195,7 +195,7 @@ cnamePlot +
 The largest representation of hosts is from Google, mostly comprising of Blogspot addresses as well as a small percentage of Google Code sites.
 
 ## DNAME Usage
-```{r}
+```{r dname}
 dnameTotal <- recordData %>% filter(recordType == "DNAME") %>% summarize(count=n())
 dnameRecords <- recordData %>%
   select(domain, recordType, answer) %>%
@@ -206,7 +206,7 @@ colnames(dnameRecords) <- c("Domain", "Answer")
 ```
 Only `r dnameTotal[[1]]` domains were using DNAME records, most of whom were associated to secondary TLDs reserved for education or government use.
 
-```{r}
+```{r dnameTable}
 kable(dnameRecords)
 ```
 
