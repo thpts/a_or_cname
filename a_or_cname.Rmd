@@ -10,13 +10,14 @@ output:
 
 ```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
 library(ggplot2)
+library(grid)
 library(knitr)
 library(data.table)
 library(dplyr)
+library(stringr)
 
 recordData <- fread("data/top1m_cnames.csv",
                 header=FALSE,
-                verbose=TRUE,
                 col.names=c("domain", "www", "class", "recordType", "answer", "ns1", "ns2", "ns3", "ns4"),
                 fill=TRUE
                 )
