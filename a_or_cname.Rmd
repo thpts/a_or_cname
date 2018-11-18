@@ -26,12 +26,12 @@ recordData <- fread("data/top1m_cnames.csv",
 In this notebook we analyse each domain in the Alex top 1 million domain list, understanding the record type for `www` for every domain, and perform basic analysis on the CNAME records as well as authoritive name servers.
 
 ## Considerations when interpretting this data
-All queries in the supplied data set were captured over approximately two days between November 12<sup>th</sup> and 13<sup>th</sup> 2018, and were performed from a host inside [AS2818](https://www.peeringdb.com/asn/2818), and thus values may be skewed due to EDNS Client Subnet.
+All queries in the supplied data set were captured over approximately two days between November 12<sup>th</sup> and 13<sup>th</sup> 2018, and were performed from a host within [AS2818](https://www.peeringdb.com/asn/2818), and thus answers may be influenced due to EDNS Client Subnet.
 
 # Record type breakdown
-Each one of the domains was queried for a `www` subdomain, either as A or CNAME, in addition to a query for nameservers for the domain.
+Each one of the domains was queried for a `www` subdomain, either as A or CNAME, in addition to a query for name servers for the domain.
 
-* `NXDOMAIN`: The domain exists and has delegated nameservers, but does not have a record for `www.`
+* `NXDOMAIN`: The domain exists and has delegated name servers, but does not have a record for `www.`
 * `SERVFAIL`: The domain may or may not exist, and does not have delegated nameservers
 * `CNAME`: A CNAME record was returned for `www.`
 * `DNAME`: A DNAME record was returned for `www.`
@@ -75,20 +75,136 @@ recordTotals <- data.frame(
 ```
 
 ```{r}
-bp <- ggplot(recordTotals, aes(x="", y=percent, fill=record))+
+bp <- ggplot(recordTotals, aes(x="", y=value, fill=record))+
 geom_bar(width=1, stat="identity")
 bp + 
   coord_polar("y", start=0) +
   scale_fill_brewer(palette="Paired", name="Record Type") +
   theme_minimal() +
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.ticks   = element_blank(),
-        axis.text    = element_blank(),
-        panel.border = element_blank(),
-        panel.grid   = element_blank())
+  labs(title="Distribution of record types") +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.ticks   = element_blank(),
+    axis.text    = element_blank(),
+    panel.border = element_blank(),
+    panel.grid   = element_blank(),
+    plot.title=element_text(hjust = 0.5)
+  )
+
+recordTotals$percent <- apply(recordTotals, 1, function(x){
+  x[[3]] = sprintf("%.2f%%", as.numeric(x[[3]]))
+})
+recordTotals$value <- NULL
+colnames(recordTotals) <- c("Record Type", "Percentage")
 ```
-Figure 1: Distribution of record types
+
 ```{r}
 kable(recordTotals)
+```
+
+## CNAME Usage
+```{r}
+
+# FIXME: this could be done better
+cnameList <- list(
+
+  ### CDNs
+  c("Content Delivery Network", "Akamai", "edgekey.net."),
+  c("Content Delivery Network", "Akamai", "edgesuite.net."),
+  c("Content Delivery Network", "Akamai", "akadns.net."),
+
+  c("Content Delivery Network", "Fastly", "fastly.net."),
+  c("Content Delivery Network", "CloudFlare", "cloudflare.net."),
+  c("Content Delivery Network", "CloudFront", "cloudfront.net."),
+  c("Content Delivery Network", "Cedexis", "cedexis.net."),
+  c("Content Delivery Network", "FastCDN", "fastcdn.com."),
+  c("Content Delivery Network", "J-Stream", "stream.ne.jp."),
+  c("Content Delivery Network", "Incapsula", "incapdns.net."),
+  c("Content Delivery Network", "Azion", "azioncdn.net."),
+  c("Content Delivery Network", "Fasterized", "fasterized.com."),
+  c("Content Delivery Network", "Azure", "azureedge.net."),
+  c("Content Delivery Network", "Distil", "distil.us."),
+
+  ### Hosting Providers
+  c("Hosting Provider", "Amazon Web Services", "elb.amazonaws.com."),
+  c("Hosting Provider", "Amazon Web Services", "elasticbeanstalk.com."),
+
+  c("Hosting Provider", "Azure", "azurewebsites.net."),
+
+  c("Hosting Provider", "Heroku", "herokussl.com."),
+  c("Hosting Provider", "Heroku", "herokudns.com."),
+
+  ### Content Providers
+  c("Content Provider", "Squarespace", "squarespace.com."),
+  c("Content Provider", "Shopify", "shopify.com."),
+  c("Content Provider", "Google", "googleusercontent.com."),
+  c("Content Provider", "HubSpot", "hubspot.net.")
+)
+
+hostingTypes     <- c()
+hostingProviders <- c()
+hostingDomains   <- c()
+totalHosts       <- c()
+
+for(provider in cnameList){
+  totalHost <- recordData %>%
+                filter(str_detect(answer, sprintf("%s$", provider[[3]]))) %>%
+                summarize(count=n())
+  hostingTypes     <- c(hostingTypes, provider[[1]])
+  hostingProviders <- c(hostingProviders, provider[[2]])
+  hostingDomains   <- c(hostingDomains, provider[[3]])
+  totalHosts       <- c(totalHosts, totalHost$count)
+}
+
+cnameUsage <- data.frame(
+  type     = hostingTypes,
+  provider = hostingProviders,
+  domain   = hostingDomains,
+  total    = totalHosts
+)
+
+# Total records from providers we know about
+totalFoundCnames <- colSums(Filter(is.numeric, cnameUsage))
+
+# Total that point www back at apex
+wwwToApexTotal <- recordData %>%
+  filter(answer == sprintf("%s.", domain)) %>%
+  summarize(count=n())
+```
+
+For the records that return CNAMEs, **`r sprintf("%s", totalFoundCnames[[1]])`** records point directly at addresses that reveal information about hosting providers such as CDNs, cloud providers, or other Software as a Service offerings. **`r wwwToApexTotal`** records pointed users back to apex - i.e. www.example.com. responds with a CNAME to example.com.
+
+```{r}
+cnamePlot <- ggplot(cnameUsage, aes(x=reorder(domain,total, sum), y=total, fill=type))
+cnamePlot +
+  geom_bar(stat="identity", position="dodge2") +
+  scale_fill_brewer(palette="Paired", name="") +
+  labs(
+    title="CNAME Answers by Service",
+    y="Number of records"
+  ) +
+  theme(
+    axis.text.x=element_text(angle=45, hjust=1),
+    axis.title.x=element_blank(),
+    plot.title=element_text(hjust=0.5)
+  )
+```
+
+The largest representation of hosts is from Google, mostly comprising of Blogspot addresses as well as a small percentage of Google Code sites.
+
+## DNAME Usage
+```{r}
+dnameTotal <- recordData %>% filter(recordType == "DNAME") %>% summarize(count=n())
+dnameRecords <- recordData %>%
+  select(domain, recordType, answer) %>%
+  filter(recordType == "DNAME")
+
+dnameRecords$recordType <- NULL
+colnames(dnameRecords) <- c("Domain", "Answer")
+```
+Only `r dnameTotal[[1]]` domains were using DNAME records, most of whom were associated to secondary TLDs reserved for education or government use.
+
+```{r}
+kable(dnameRecords)
 ```
