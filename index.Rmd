@@ -102,8 +102,8 @@ recordTable$value <- NULL
 colnames(recordTable) <- c("Record Type", "Percentage")
 ```
 
-```{r recordTotalsTable}
-kable(recordTotals)
+```{r recordTable}
+kable(recordTable)
 ```
 
 ## CNAME Usage
