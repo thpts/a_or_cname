@@ -93,11 +93,13 @@ recordTypePlot +
     plot.title=element_text(hjust = 0.5)
   )
 
-recordTotals$percent <- apply(recordTotals, 1, function(x){
+recordTable <- data.frame(recordTotals)
+
+recordTable$percent <- apply(recordTable, 1, function(x){
   x[[3]] = sprintf("%.2f%%", as.numeric(x[[3]]))
 })
-recordTotals$value <- NULL
-colnames(recordTotals) <- c("Record Type", "Percentage")
+recordTable$value <- NULL
+colnames(recordTable) <- c("Record Type", "Percentage")
 ```
 
 ```{r recordTotalsTable}
@@ -167,14 +169,19 @@ cnameUsage <- data.frame(
 
 # Total records from providers we know about
 totalFoundCnames <- colSums(Filter(is.numeric, cnameUsage))
+foundCnamesPercentage <-
+  totalFoundCnames[[1]] / (recordTotals %>% filter(record == "CNAME"))$value * 100
 
 # Total that point www back at apex
 wwwToApexTotal <- recordData %>%
   filter(answer == sprintf("%s.", domain)) %>%
   summarize(count=n())
+
+wwwToApexPercentage <-
+   wwwToApexTotal[[1]] / (recordTotals %>% filter(record == "CNAME"))$value * 100
 ```
 
-For the records that return CNAMEs, **`r sprintf("%s", totalFoundCnames[[1]])`** records point directly at addresses that reveal information about hosting providers such as CDNs, cloud providers, or other Software as a Service offerings. **`r wwwToApexTotal`** records pointed users back to apex - i.e. www.example.com. responds with a CNAME to example.com.
+For the records that return CNAMEs, **`r sprintf("%s", totalFoundCnames[[1]])`** (or `r sprintf("%.2f%%", foundCnamesPercentage)` of total CNAME records) records point directly at addresses that reveal information about hosting providers such as CDNs, cloud providers, or other Software as a Service offerings. **`r wwwToApexTotal`** (`r sprintf("%.2f%%", wwwToApexPercentage)` of total CNAME records) of records pointed users back to apex - i.e. www.example.com. responds with a CNAME to example.com.
 
 ```{r cnamePlot}
 cnamePlot <- ggplot(cnameUsage, aes(x=reorder(domain,total, sum), y=total, fill=type))
