@@ -75,9 +75,9 @@ recordTotals <- data.frame(
 ```
 
 ```{r}
-bp <- ggplot(recordTotals, aes(x="", y=value, fill=record))+
+recordTypePlot <- ggplot(recordTotals, aes(x="", y=value, fill=record))+
 geom_bar(width=1, stat="identity")
-bp + 
+recordTypePlot +
   coord_polar("y", start=0) +
   scale_fill_brewer(palette="Paired", name="Record Type") +
   theme_minimal() +
@@ -208,3 +208,4 @@ Only `r dnameTotal[[1]]` domains were using DNAME records, most of whom were ass
 ```{r}
 kable(dnameRecords)
 ```
+
