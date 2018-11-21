@@ -118,30 +118,35 @@ cnameList <- list(
   c("Content Delivery Network", "Akamai", "akadns.net."),
 
   c("Content Delivery Network", "Fastly", "fastly.net."),
+  c("Content Delivery Network", "Fastly", "fastlylb.net."),
   c("Content Delivery Network", "CloudFlare", "cloudflare.net."),
-  c("Content Delivery Network", "CloudFront", "cloudfront.net."),
-  c("Content Delivery Network", "Cedexis", "cedexis.net."),
-  c("Content Delivery Network", "FastCDN", "fastcdn.com."),
-  c("Content Delivery Network", "J-Stream", "stream.ne.jp."),
+  c("Content Delivery Network", "Amazon Web Services", "cloudfront.net."),
+  #c("Content Delivery Network", "Cedexis", "cedexis.net."),
+  #c("Content Delivery Network", "FastCDN", "fastcdn.com."),
+  #c("Content Delivery Network", "J-Stream", "stream.ne.jp."),
   c("Content Delivery Network", "Incapsula", "incapdns.net."),
-  c("Content Delivery Network", "Azion", "azioncdn.net."),
-  c("Content Delivery Network", "Fasterized", "fasterized.com."),
+  #c("Content Delivery Network", "Azion", "azioncdn.net."),
+  #c("Content Delivery Network", "Fasterized", "fasterized.com."),
   c("Content Delivery Network", "Azure", "azureedge.net."),
-  c("Content Delivery Network", "Distil", "distil.us."),
+  #c("Content Delivery Network", "Distil", "distil.us."),
 
   ### Hosting Providers
   c("Hosting Provider", "Amazon Web Services", "elb.amazonaws.com."),
   c("Hosting Provider", "Amazon Web Services", "elasticbeanstalk.com."),
+  c("Hosting Provider", "Google", "ghs.googlehosted.com."),
 
   c("Hosting Provider", "Azure", "azurewebsites.net."),
+  c("Hosting Provider", "Azure", "cloudapp.net."),
 
   c("Hosting Provider", "Heroku", "herokussl.com."),
   c("Hosting Provider", "Heroku", "herokudns.com."),
 
   ### Content Providers
+  c("Content Provider", "Google", "googleusercontent.com."),
+  c("Content Provider", "Google", "ghs.google.com."),
   c("Content Provider", "Squarespace", "squarespace.com."),
   c("Content Provider", "Shopify", "shopify.com."),
-  c("Content Provider", "Google", "googleusercontent.com."),
+  c("Content Provider", "Shopify", "shopifycloud.com."),
   c("Content Provider", "HubSpot", "hubspot.net.")
 )
 
@@ -184,9 +189,9 @@ wwwToApexPercentage <-
 For the records that return CNAMEs, **`r sprintf("%s", totalFoundCnames[[1]])`** (or `r sprintf("%.2f%%", foundCnamesPercentage)` of total CNAME records) records point directly at addresses that reveal information about hosting providers such as CDNs, cloud providers, or other Software as a Service offerings. **`r wwwToApexTotal`** (`r sprintf("%.2f%%", wwwToApexPercentage)` of total CNAME records) of records pointed users back to apex - i.e. www.example.com. responds with a CNAME to example.com.
 
 ```{r cnamePlot}
-cnamePlot <- ggplot(cnameUsage, aes(x=reorder(domain,total, sum), y=total, fill=type))
+cnamePlot <- ggplot(cnameUsage, aes(x=reorder(provider,total, sum), group=provider, y=total, fill=type))
 cnamePlot +
-  geom_bar(stat="identity", position="dodge2") +
+  geom_bar(stat="identity") +
   scale_fill_brewer(palette="Paired", name="") +
   labs(
     title="CNAME Answers by Service",
