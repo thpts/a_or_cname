@@ -217,3 +217,94 @@ Only `r dnameTotal[[1]]` domains were using DNAME records, most of whom were ass
 kable(dnameRecords)
 ```
 
+
+## Nameserver Usage
+```{r nameServer}
+
+nameServerList <- list(
+  # Unlike CNAMEs, we have to be much looser on the matching as some providers use multiple TLDs
+  # List taken from https://en.wikipedia.org/wiki/List_of_managed_DNS_providers
+
+  # DNS Providers
+  c("DNS Provider", "Dyn", "dynect."),
+  c("DNS Provider", "NS1", "nsone.net."),
+  c("DNS Provider", "Verisign", "verisigndns"),
+  c("DNS Provider", "UltraDNS", "ultradns."),
+  c("DNS Provider", "DNSimple", "dnsimple.com."),
+  c("DNS Provider", "ClouDNS", "cloudns.net."),
+  #c("DNS Provider", "CloudfloorDNS", "cloudfloordns."),
+  c("DNS Provider", "DNS Made Easy", "dnsmadeeasy.com"),
+  c("DNS Provider", "EasyDNS", "easydns."),
+  #c("DNS Provider", "No-IP", "no-ip.com."),
+  #c("DNS Provider", "Constellix", "constellix."),
+
+  # Registrars
+  c("Registrar", "Namecheap", "registrar-servers.com."),
+  c("Registrar", "Gandi", "gandi.net."),
+  c("Registrar", "Godaddy", "domaincontrol.com."),
+  c("Registrar", "123-reg", "123-reg.co.uk."),
+  c("Registrar", "eNom", "name-services.com."),
+
+  # Hosting Providers
+  c("Hosting Provider", "AWS Route53", ".awsdns-"),
+  c("Hosting Provider", "Azure", "azure-dns"),
+  c("Hosting Provider", "Google", "googledomains.com"),
+  #c("Hosting Provider", "Alibaba", "alibabadns.com."),
+  c("Hosting Provider", "Linode", "linode.com."),
+  c("Hosting Provider", "DigitalOcean", "digitalocean.com."),
+  c("Hosting Provider", "Godaddy", "secureserver.net."),
+  c("Hosting Provider", "OVH", "ovh.net."),
+
+  # Content Delivery Networks
+  c("Content Delivery Network", "CloudFlare", "cloudflare.com."),
+  c("Content Delivery Network", "Akamai", "akam.net"),
+
+  # Content Providers
+  #c("Content Provider", "Wordpress", "wordpress.com"),
+  c("Content Provider", "Google", "google.com."),
+  c("Content Provider", "Squarespace", "squarespacedns.com.")
+)
+
+nsHostingTypes <- c()
+nsProviders    <- c()
+nsDomains      <- c()
+nsTotalHosts   <- c()
+
+for(provider in nameServerList){
+  totalHost <- recordData %>%
+                filter_at(vars(contains("ns")), any_vars(str_detect(. , provider[[3]]))) %>%
+                summarize(count=n())
+  nsHostingTypes <- c(nsHostingTypes, provider[[1]])
+  nsProviders    <- c(nsProviders, provider[[2]])
+  nsDomains      <- c(nsDomains, provider[[3]])
+  nsTotalHosts   <- c(nsTotalHosts, totalHost$count)
+}
+
+nameServerUsage <- data.frame(
+  type     = nsHostingTypes,
+  provider = nsProviders,
+  domain   = nsDomains,
+  total    = nsTotalHosts
+)
+
+totalFoundNameServers <- colSums(Filter(is.numeric, nameServerUsage))
+
+```
+Out of all the records that did return name servers, **`r sprintf("%s", totalFoundNameServers[[1]])`** name servers references were matched across the dataset.
+
+
+```{r}
+nsPlot <- ggplot(nameServerUsage, aes(x=reorder(provider,total, sum), group=provider, y=total, fill=type))
+nsPlot +
+  geom_bar(stat="identity") +
+  scale_fill_brewer(palette="Paired", name="") +
+  labs(
+    title="Authoritive name servers by service",
+    y="Number of records"
+  ) +
+  theme(
+    axis.text.x=element_text(angle=45, hjust=1),
+    axis.title.x=element_blank(),
+    plot.title=element_text(hjust=0.5)
+  )
+```
