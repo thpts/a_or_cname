@@ -223,7 +223,7 @@ kable(dnameRecords)
 ```
 
 
-## Nameserver Usage
+# Nameserver Usage
 ```{r nameServer}
 
 nameServerList <- list(
