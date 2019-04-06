@@ -1,4 +1,9 @@
-.PHONY: resources collector analysis-build analysis
+.PHONY: resources collector collector-build analysis-build analysis
+
+build: analysis-build collector-build
+
+collector-build:
+	cd collector && cargo build
 
 analysis-build:
 	docker build -t dnsobs-analysis analysis/
