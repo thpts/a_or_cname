@@ -4,12 +4,15 @@ author:
   - Thomas Peterson
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
+  pdf_document:
+    toc: no
   html_document:
     toc: yes
-    code_folding: hide
 ---
 
 ```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo=FALSE, results="hide")
+
 library(ggplot2)
 library(grid)
 library(knitr)

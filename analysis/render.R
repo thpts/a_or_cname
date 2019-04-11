@@ -2,4 +2,4 @@ library(rmarkdown)
 
 dataDir <- '/data/'
 
-render('index.Rmd', output_file='index.html')
+render('index.Rmd', c("html_document", "pdf_document"))
