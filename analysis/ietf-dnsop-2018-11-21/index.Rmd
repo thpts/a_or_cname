@@ -26,7 +26,7 @@ if(!exists("dataDir")) {
     dataDir <- "../data/"
 }
 
-recordData <- fread(paste0(dataDir, "top1m_cnames.csv"),
+recordData <- fread(paste0(dataDir, "ietf-dnsop-2018-11-21/", "top1m_cnames.csv"),
                 header=FALSE,
                 col.names=c("domain", "www", "class", "recordType", "answer", "ns1", "ns2", "ns3", "ns4"),
                 fill=TRUE
