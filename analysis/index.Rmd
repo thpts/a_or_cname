@@ -3,8 +3,10 @@ title: "A or CNAME?"
 author:
   - Thomas Peterson
 date: "`r format(Sys.time(), '%d %B %Y')`"
+classoption: twocolumn
 output: 
   pdf_document:
+    keep_tex: true
     toc: no
   html_document:
     toc: yes
