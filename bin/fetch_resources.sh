@@ -4,9 +4,20 @@
 
 resources=(
     # Alexa top 1 million domains
-    https://s3.amazonaws.com/alexa-static/top-1m.csv.zip
+    # https://s3.amazonaws.com/alexa-static/top-1m.csv.zip
+
+    # Cisco Umbrella
+    # http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip
+
+    # Majestic Million
+    # http://downloads.majesticseo.com/majestic_million.csv
+
+    # Tranco
+    https://tranco-list.eu/top-1m.csv.zip
+
     # Public Suffix List
     https://publicsuffix.org/list/public_suffix_list.dat
+
     # GeoLite 2 ASN database
     https://geolite.maxmind.com/download/geoip/database/GeoLite2-ASN.tar.gz
 );
