@@ -3,7 +3,7 @@
 build: analysis-build collector-build
 
 collector-build:
-	cd collector && cargo build
+	docker build -t dnsobs-collector collector/
 
 analysis-build:
 	docker build -t dnsobs-analysis analysis/
