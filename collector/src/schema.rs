@@ -9,25 +9,25 @@ table! {
     /// ```text
     ///              foo.example.co.uk
     ///             |-----------------|  - Fully Qualified Domain Name (FQDN)
+    ///             |---|                - Sub-domain
     ///                 |-------------|  - Root, comprised of domain with any TLD
     ///                         |-----|  - Suffix, including all tiers of TLD
-    ///             |---|                - Sub-domain
     /// ```
     domain (rank) { // FIXME rank should *not* be primary key, rowid is sufficient
 
-        /// Ranking of the domain
+        /// Ranking of the domain as provided by the list source
         rank -> Integer,
 
-        /// Fully Qualified Domain Name - i.e. what was listed in file during import
+        /// Fully Qualified Domain Name, e.g. "foo.example.co.uk"
         fqdn -> Text,
 
-        /// Sub-domain
+        /// Sub-domain, e.g "foo"
         sub -> Text,
 
-        /// Root domain
+        /// Root domain, e.g "example.co.uk"
         root -> Text,
 
-        /// Suffix
+        /// Suffix, e.g "co.uk"
         suffix -> Text,
     }
 }
