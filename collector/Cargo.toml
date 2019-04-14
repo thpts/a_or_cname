@@ -1,0 +1,26 @@
+[package]
+name = "damp"
+version = "0.1.0"
+authors = ["Thomas Peterson"]
+edition = "2018"
+
+[lib]
+name = "damp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "domain_query"
+path = "src/bin/domain_query.rs"
+
+[[bin]]
+name = "domain_load"
+path = "src/bin/domain_load.rs"
+
+[dependencies]
+trust-dns = "0.15.1"
+maxminddb = "0.13.0"
+publicsuffix = "1.5.2"
+clap = "2.32.0"
+csv = "1.0.6"
+chrono = "0.4"
+diesel = { version = "1.0.0", features = ["sqlite"] }
