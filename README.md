@@ -10,7 +10,7 @@ CNAME records and A records in their zone's apex.
 * `bin` - Collection of scripts to fetch data and perform ancillary tasks
 * `collector` - Executables for collecting DNS data
 * `data` - Output directory for data collected
-* `resources` - Holding directory for supplimentary data sets
+* `resources` - Holding directory for supplementary data sets
 
 ## Building and Running
 
@@ -19,7 +19,7 @@ either `wget` or `curl` to download resource data sets such as the ASN database,
 Alexa 1m CSV, etc.
 
 ```bash
-    # Compile the collector and notebook containers
+    # Compile the collector and analysis containers
     make build
 
     # Fetch additional data sets
