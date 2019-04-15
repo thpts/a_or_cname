@@ -14,7 +14,9 @@ table! {
     ///                 |-------------|  - Root, comprised of domain with any TLD
     ///                         |-----|  - Suffix, including all tiers of TLD
     /// ```
-    domain (rank) { // FIXME rank should *not* be primary key, rowid is sufficient
+    domain(rowid) {
+        /// SQLite specific hidden row
+        rowid -> Integer,
 
         /// Ranking of the domain as provided by the list source
         rank -> Integer,
@@ -39,6 +41,8 @@ table! {
     /// record returned from any number of DNS queries performed - one query may result in `n`, for
     /// example a query for `IN A example.com` may return `CNAME example.net` and `A 127.0.0.1`.
     record (domain) {
+        /// SQLite specific hidden row
+        rowid -> Integer,
 
         /// row-id of the domain from which the DNS query was derived from.
         domain -> Integer,
