@@ -27,7 +27,7 @@ table! {
         /// Sub-domain, e.g "foo"
         sub -> Text,
 
-        /// Root domain, e.g "example.co.uk"
+        /// Root domain, e.g "example"
         root -> Text,
 
         /// Suffix, e.g "co.uk"

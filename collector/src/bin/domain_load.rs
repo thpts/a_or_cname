@@ -8,7 +8,7 @@ extern crate damp;
 
 use chrono::prelude::Utc;
 use clap::{App, Arg};
-use damp::dns::get_sub_domain;
+use damp::dns::{get_sub_domain, get_root_domain};
 use damp::model::connect;
 use damp::model::domain::NewDomain;
 use damp::schema;
@@ -88,8 +88,8 @@ fn main() -> Result<(), Box<Error>> {
         match list.parse_domain(raw_domain.unwrap()) {
             Ok(d) => {
                 match insert_domain(&rank, &d, &conn) {
-                    Ok(_)  => (),
-                    Err(e) => eprintln!("Error inserting domain - {}", e)
+                    Ok(_) => (),
+                    Err(e) => eprintln!("Error inserting domain - {}", e),
                 };
             }
             Err(e) => eprintln!("Error parsing domain - {}", e),
@@ -116,12 +116,13 @@ fn main() -> Result<(), Box<Error>> {
 /// * `domain` - Parsed Domain
 fn insert_domain(rank: &i32, domain: &Domain, conn: &SqliteConnection) -> QueryResult<usize> {
     let sub_domain = get_sub_domain(&domain);
+    let root_domain = get_root_domain(&domain);
 
     let d = NewDomain {
         rank: &rank,
         fqdn: &domain.to_string(),
         sub: &sub_domain.unwrap_or("".to_string()),
-        root: &domain.root().unwrap_or(""),
+        root: &root_domain.unwrap_or("".to_string()),
         suffix: &domain.suffix().unwrap_or(""),
     };
 
