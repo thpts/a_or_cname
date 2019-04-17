@@ -26,13 +26,6 @@ fn main() -> Result<(), Box<Error>> {
         .author(QUERY_AUTHORS)
         .about(QUERY_ABOUT)
         .arg(
-            Arg::with_name("v")
-                .short("v")
-                .long("verbose")
-                .multiple(true)
-                .help("Sets the level of verbosity"),
-        )
-        .arg(
             Arg::with_name("sqlite-db")
                 .help("Path to SQLite database")
                 .long("sqlite-db")
