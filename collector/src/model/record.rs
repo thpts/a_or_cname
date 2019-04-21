@@ -9,6 +9,7 @@ pub struct Record {
     pub ttl: i32,
     pub address: String,
     pub asn: i32,
+    pub query_time: i64,
 }
 
 #[derive(Insertable)]
@@ -21,4 +22,5 @@ pub struct NewRecord<'a> {
     pub ttl: &'a i32,
     pub address: &'a str,
     pub asn: &'a i32,
+    pub query_time: &'a i64,
 }

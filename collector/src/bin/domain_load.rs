@@ -8,7 +8,7 @@ extern crate damp;
 
 use chrono::prelude::Utc;
 use clap::{App, Arg};
-use damp::dns::{get_sub_domain, get_root_domain};
+use damp::dns::{get_root_domain, get_sub_domain};
 use damp::model::connect;
 use damp::model::domain::NewDomain;
 use damp::schema;

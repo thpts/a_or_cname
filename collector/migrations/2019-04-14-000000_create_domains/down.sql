@@ -1,1 +1,2 @@
-DROP TABLE domain
+DROP TABLE domain;
+DROP TABLE record;

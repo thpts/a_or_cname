@@ -13,5 +13,6 @@ CREATE TABLE record (
     record_type TEXT,
     ttl INTEGER,
     address TEXT,
-    asn INTEGER
+    asn INTEGER,
+    query_time INTEGER
 );

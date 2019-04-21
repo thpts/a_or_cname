@@ -37,9 +37,9 @@ pub fn get_root_domain(domain: &Domain) -> Option<String> {
 
     let suf_len = match domain.suffix() {
         Some(suf) => suf.len(),
-        None => 0
+        None => 0,
     };
 
-    let root_len = root_domain.len() - suf_len -1;
+    let root_len = root_domain.len() - suf_len - 1;
     return Some(root_domain.chars().take(root_len).collect());
 }
