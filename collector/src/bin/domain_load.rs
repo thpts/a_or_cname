@@ -6,17 +6,16 @@ extern crate publicsuffix;
 
 extern crate damp;
 
-use chrono::prelude::Utc;
 use clap::{App, Arg};
 use damp::dns::{get_root_domain, get_sub_domain};
 use damp::model::connect;
 use damp::model::domain::NewDomain;
 use damp::schema;
+use damp::{end_processing_marker, start_processing_marker};
 use diesel::prelude::*;
 use publicsuffix::{Domain, List};
 use std::error::Error;
 use std::str::FromStr;
-use std::time::Instant;
 
 static LOADER_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 static LOADER_AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
@@ -67,12 +66,10 @@ fn main() -> Result<(), Box<Error>> {
     // --------------------------
     //     Start of processing
     // --------------------------
-    let start = Instant::now();
-    println!(
-        "Import of domains from {} started at {}",
-        csv_file,
-        Utc::now().to_rfc3339()
-    );
+    let start = start_processing_marker(format!(
+        "Loading of domains from {} into {}",
+        csv_file, sqlite_db
+    ));
 
     let list = List::from_path(suffix_path.to_string()).unwrap();
     let conn = connect(sqlite_db.to_string());
@@ -99,12 +96,7 @@ fn main() -> Result<(), Box<Error>> {
     // --------------------------
     //       End of processing
     // --------------------------
-    let duration = start.elapsed();
-    println!(
-        "Import completed at {} taking {} seconds",
-        Utc::now().to_rfc3339(),
-        duration.as_secs()
-    );
+    end_processing_marker("Import completed", start);
 
     Ok(())
 }
