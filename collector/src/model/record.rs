@@ -2,6 +2,7 @@ use super::super::schema::record;
 
 #[derive(Queryable)]
 pub struct Record {
+    pub rowid: i64,
     pub domain: i32,
     pub parent: i32,
     pub response_code: i32,

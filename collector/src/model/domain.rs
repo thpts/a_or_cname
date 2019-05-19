@@ -2,6 +2,7 @@ use super::super::schema::domain;
 
 #[derive(Queryable)]
 pub struct Domain {
+    pub rowid: i64,
     pub rank: i32,
     pub fqdn: String,
     pub sub: String,
