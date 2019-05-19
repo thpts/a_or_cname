@@ -4,14 +4,14 @@ table! {
     /// For the sake of further analysis, we persist not only the fully qualified
     /// domain name (FQDN), but also its constituent components, however we have
     /// decided not to separate any secondary top-level domains from their
-    /// parents. Using Public Suffix List nomenclature, a domain comprises of
-    /// a few elements:
+    /// parents. Using some of the Public Suffix List nomenclature, a domain
+    /// comprises of a few elements:
     ///
     /// ```text
     ///          foo.example.co.uk
     ///         |-----------------|  - Fully Qualified Domain Name (FQDN)
-    ///         |---|                - Sub-domain
-    ///             |-------------|  - Root, comprised of domain with any TLD
+    ///         |---|                - Sub-domain, if present
+    ///             |-------|        - Root, comprised of domain without any TLD
     ///                     |-----|  - Suffix, including all tiers of TLD
     /// ```
     domain(rowid) {
