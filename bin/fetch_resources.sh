@@ -25,11 +25,12 @@ resources=(
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )";
 resource_dir="${dir}/../resources/";
 
+cd $resource_dir;
+
 for file in "${resources[@]}"; do
-    wget $file -P $resource_dir 2>/dev/null || cd $resource_dir && curl -O $file;
+    wget $file -P $resource_dir 2>/dev/null || curl -O $file;
 done
 
 # Unpack everything
-cd $resource_dir;
 unzip *.zip;
 tar -zxvf *.tar.gz;
