@@ -1,5 +1,7 @@
 extern crate publicsuffix;
 
+pub mod query;
+
 use publicsuffix::Domain;
 
 /// The `publicsuffix` crate does not provide the means to separate a
