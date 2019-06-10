@@ -1,13 +1,13 @@
 use trust_dns::client::{Client, SyncClient};
 use trust_dns::udp::UdpClientConnection;
 
-use std::net::SocketAddr;
-use std::str::FromStr;
-use trust_dns::rr::{RecordType, DNSClass, Name};
+use crate::model::domain::Domain;
 use crate::model::record::NewRecord;
 use maxminddb::Reader;
+use std::net::SocketAddr;
+use std::str::FromStr;
 use trust_dns::op::DnsResponse;
-use crate::model::domain::Domain;
+use trust_dns::rr::{DNSClass, Name, RecordType};
 
 pub struct Query {
     /// DNS Client
@@ -30,12 +30,13 @@ impl Query {
     /// * `maxminddb` - path to the Maxmind GeoIP2 ASN database.
     ///
     /// # Example
+    ///
     /// ```
-    /// use query::Query;
+    /// use damp::dns::query::Query;
     /// use std::net::SocketAddr;
     ///
-    /// let addr = "127.0.0.1:53";
-    /// let path = "/tmp/fake.mmdb";
+    /// let addr = "127.0.0.1:53".parse().unwrap();
+    /// let path = "tests/fixtures/GeoLite2-ASN-Test.mmdb";
     /// let client = Query::new(addr, &path);
     /// ```
     pub fn new(resolver: SocketAddr, maxminddb: &str) -> Self {
@@ -44,6 +45,7 @@ impl Query {
         Query {
             client: SyncClient::new(conn),
             maxmind: maxminddb::Reader::open_readfile(maxminddb).unwrap(),
+            // NOTE: If you wish to change the queries that are performed for each, modify this.
             query_types: vec![RecordType::A, RecordType::AAAA, RecordType::NS],
         }
     }
@@ -56,13 +58,10 @@ impl Query {
     pub fn query_all(&self, domain: Domain) -> Option<Vec<NewRecord>> {
         let name: Name = match Name::from_str(domain.fqdn.as_ref()) {
             Ok(n) => n,
-            Err(_) => {
-                return None
-            }
+            Err(_) => return None,
         };
         let mut records = Vec::new();
         for query_type in &self.query_types {
-
             // FIXME: Remove unwrap here
             let response: DnsResponse = self.client.query(&name, DNSClass::IN, *query_type).unwrap();
             for answer in response.answers().iter() {
@@ -85,7 +84,7 @@ impl Query {
         }
 
         if records.len() == 0 {
-            return None
+            return None;
         }
         Some(records)
     }
