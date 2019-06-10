@@ -10,9 +10,9 @@ use diesel::prelude::*;
 ///
 /// # Example
 /// ```
-/// use model::connect;
+/// use damp::model::connect;
 ///
-/// let conn = connect(":memory:");
+/// let conn = connect(":memory:".to_string());
 /// ```
 pub fn connect(database_url: String) -> SqliteConnection {
     SqliteConnection::establish(&database_url)
