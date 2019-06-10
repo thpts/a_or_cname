@@ -16,7 +16,7 @@ table! {
     /// ```
     domain(rowid) {
         /// SQLite specific hidden row
-        rowid -> Integer,
+        rowid -> BigInt,
 
         /// Ranking of the domain as provided by the list source
         rank -> Integer,
@@ -43,14 +43,14 @@ table! {
     /// `IN A example.com` may return `CNAME example.net` and `A 127.0.0.1`.
     record (domain) {
         /// SQLite specific hidden row
-        rowid -> Integer,
+        rowid -> BigInt,
 
         /// row-id of the domain from which the DNS query was derived from.
-        domain -> Integer,
+        domain -> BigInt,
 
         /// If the record is a child, (e.g. the A of a CNAME), this integer
         /// refers to the row-id of the parent.
-        parent -> Integer,
+        parent -> BigInt,
 
         /// RCODE value from the Answer (see
         /// [RFC 1035 &sect; 4.1.1](https://tools.ietf.org/html/rfc1035#section-4.1.1)) - this value
