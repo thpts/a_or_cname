@@ -113,9 +113,9 @@ fn insert_domain(rank: &i32, domain: &Domain, conn: &SqliteConnection) -> QueryR
     let d = NewDomain {
         rank: &rank,
         fqdn: &domain.to_string(),
-        sub: &sub_domain.unwrap_or("".to_string()),
-        root: &root_domain.unwrap_or("".to_string()),
-        suffix: &domain.suffix().unwrap_or(""),
+        sub: sub_domain.map(String::from),
+        root: root_domain.map(String::from),
+        suffix: domain.suffix(),
     };
 
     return diesel::insert_into(schema::domain::table)

@@ -25,13 +25,13 @@ table! {
         fqdn -> Text,
 
         /// Sub-domain, e.g "foo"
-        sub -> Text,
+        sub -> Nullable<Text>,
 
         /// Root domain, e.g "example"
-        root -> Text,
+        root -> Nullable<Text>,
 
         /// Suffix, e.g "co.uk"
-        suffix -> Text,
+        suffix -> Nullable<Text>,
     }
 }
 
@@ -50,7 +50,7 @@ table! {
 
         /// If the record is a child, (e.g. the A of a CNAME), this integer
         /// refers to the row-id of the parent.
-        parent -> BigInt,
+        parent -> Nullable<BigInt>,
 
         /// RCODE value from the Answer (see
         /// [RFC 1035 &sect; 4.1.1](https://tools.ietf.org/html/rfc1035#section-4.1.1)) - this value
@@ -58,20 +58,20 @@ table! {
         response_code -> Integer,
 
         /// Record Type, e.g "CNAME", "A" etc.
-        record_type -> Text,
+        record_type -> Nullable<Text>,
 
         /// The record's Time To Live value, which may have applicability in
         /// future understanding record freshness across the dataset.
-        ttl -> Integer,
+        ttl -> Nullable<Integer>,
 
         /// Address provided in the record, this may be a FQDN or IP address.
-        address -> Text,
+        address -> Nullable<Text>,
 
         /// The Autonomous System Number assigned for any IP addresses found
         /// in the address. This is not provided in the DNS response but by
         /// matching an address value that equals an IP address against a
         /// database of CIDR ranges to match against it.
-        asn -> Integer,
+        asn -> Nullable<Integer>,
 
         /// Time the DNS query was performed, represented as UTC derived from
         /// Unix Epoch at millisecond resolution.
