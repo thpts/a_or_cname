@@ -106,6 +106,7 @@ fn main() -> Result<(), Box<Error>> {
 /// # Arguments
 /// * `rank` - Domain ranking
 /// * `domain` - Parsed Domain
+/// * `conn` - SQLite connection
 fn insert_domain(rank: &i32, domain: &Domain, conn: &SqliteConnection) -> QueryResult<usize> {
     let sub_domain = get_sub_domain(&domain);
     let root_domain = get_root_domain(&domain);
