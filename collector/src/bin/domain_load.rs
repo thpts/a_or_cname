@@ -2,6 +2,7 @@ extern crate chrono;
 extern crate clap;
 extern crate csv;
 extern crate diesel;
+extern crate failure;
 extern crate publicsuffix;
 
 extern crate damp;
@@ -13,8 +14,8 @@ use damp::model::domain::NewDomain;
 use damp::schema;
 use damp::{end_processing_marker, start_processing_marker};
 use diesel::prelude::*;
+use failure::Error;
 use publicsuffix::{Domain, List};
-use std::error::Error;
 use std::str::FromStr;
 
 static LOADER_VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -31,7 +32,7 @@ lists such as Alexa, Cisco Umbrella:
 2,example.net
 "#;
 
-fn main() -> Result<(), Box<Error>> {
+fn main() -> Result<(), Error> {
     let matches = App::new("domain_load")
         .version(LOADER_VERSION)
         .author(LOADER_AUTHORS)
@@ -114,8 +115,8 @@ fn insert_domain(rank: &i32, domain: &Domain, conn: &SqliteConnection) -> QueryR
     let d = NewDomain {
         rank: &rank,
         fqdn: &domain.to_string(),
-        sub: sub_domain.map(String::from),
-        root: root_domain.map(String::from),
+        sub: sub_domain.as_ref().map(|x| &**x),
+        root: root_domain.as_ref().map(|x| &**x),
         suffix: domain.suffix(),
     };
 
