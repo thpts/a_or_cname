@@ -14,13 +14,16 @@ CNAME records and A records in their zone's apex.
 
 ## Building and Running
 
-You will need Docker present in order to generate the dataset yourself and
-either `wget` or `curl` to download resource data sets such as the ASN database,
-Alexa 1m CSV, etc.
+You will need Docker and bash present in order to generate the dataset yourself
+and either `wget` or `curl` to download resource data sets such as the ASN
+database, Alexa 1m CSV, etc.
 
 ```bash
     # Compile the collector and analysis containers
     make build
+
+    # Initialise the dataset, set 'db' to your preferred filename in data/
+    make db=test_run.sqlite prepare
 
     # Fetch additional data sets
     make resources

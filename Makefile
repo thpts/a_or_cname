@@ -1,4 +1,4 @@
-.PHONY: resources collector collector-build analysis-build analysis
+.PHONY: resources prepare collector collector-build analysis-build analysis
 
 build: analysis-build collector-build
 
@@ -7,6 +7,9 @@ collector-build:
 
 analysis-build:
 	docker build -t dnsobs-analysis analysis/
+
+prepare:
+	bin/prepare_database.sh -d $(db)
 
 analysis:
 	docker run --rm -v ${PWD}/analysis:/analysis -v ${PWD}/data:/data dnsobs-analysis
