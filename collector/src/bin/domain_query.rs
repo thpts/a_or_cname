@@ -77,8 +77,8 @@ impl DnsQuery {
     ///
     /// # Arguments
     /// * `domain` - The [Domain](crate::model::domain::Domain)
-    pub fn query_domain(&self, domain: Domain) {
-        let name: Name = Name::from_ascii(domain.fqdn).unwrap();
+    pub fn query_domain(&self, domain: &Domain) {
+        let name: Name = Name::from_ascii(&domain.clone().fqdn).unwrap();
         for query_type in &self.query_types {
             // FIXME: Remove unwrap here
             let response: DnsResponse = self
@@ -112,6 +112,22 @@ impl DnsQuery {
                     .execute(&self.sql_client);
             }
         }
+    }
+
+    /// Process all domains and get all records
+    pub fn process_all(&self) {
+        use damp::schema::domain::dsl::*;
+        let domains = domain.load::<Domain>(&self.sql_client).unwrap();
+        for d in &domains {
+            self.query_domain(d);
+        }
+    }
+
+    /// Return total number of domains available to query in our dataset
+    pub fn total_domains(&self) -> i64 {
+        use damp::schema::domain::dsl::*;
+        let count = domain.count().load(&self.sql_client).unwrap();
+        return count[0];
     }
 
     /// Using the type of record, convert the RData into a String
@@ -172,9 +188,10 @@ fn main() -> Result<(), Error> {
         sqlite_db
     ));
 
-    
+    let total_domains = dns_query.total_domains();
+    println!("Processing {} domains", total_domains);
 
-    // TODO processing here
+    dns_query.process_all();
 
     // --------------------------
     //       End of processing
