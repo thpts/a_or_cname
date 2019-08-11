@@ -27,6 +27,8 @@ resource_dir="${dir}/../resources/";
 
 cd $resource_dir;
 
+echo "$(date -u +%FT%TZ): Downloading resources to ${resource_dir}...";
+
 for file in "${resources[@]}"; do
     wget $file -P $resource_dir 2>/dev/null || curl -O $file;
 done

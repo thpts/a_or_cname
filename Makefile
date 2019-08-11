@@ -11,6 +11,9 @@ analysis-build:
 prepare:
 	bin/prepare_database.sh -d $(db)
 
+query:
+	bin/run_query.sh -d $(db) -r $(resolver)
+
 analysis:
 	docker run --rm -v ${PWD}/analysis:/analysis -v ${PWD}/data:/data dnsobs-analysis
 

@@ -22,11 +22,13 @@ database, Alexa 1m CSV, etc.
     # Compile the collector and analysis containers
     make build
 
+    # Fetch additional data sets
+    make resources
+
     # Initialise the dataset, set 'db' to your preferred filename in data/
     make db=test_run.sqlite prepare
 
-    # Fetch additional data sets
-    make resources
+    make db=test_run.sqlite resolver=8.8.8.8:53 query
 
     # Generate the reporting
     make analysis
