@@ -33,4 +33,4 @@ done
 
 # Unpack everything
 unzip *.zip;
-tar -zxvf *.tar.gz;
+tar --strip=1 -zxvf *.tar.gz;
