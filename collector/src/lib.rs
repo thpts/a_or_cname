@@ -3,6 +3,7 @@ extern crate diesel;
 
 use chrono::prelude::Utc;
 use std::time::Instant;
+use std::time::SystemTime;
 
 pub mod dns;
 pub mod model;
@@ -30,4 +31,12 @@ pub fn end_processing_marker(message: &str, start: Instant) {
         message,
         duration.as_secs()
     );
+}
+
+/// Return the current timestamp as seconds from UNIX Epoch
+pub fn unix_time() -> i64 {
+    return SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
 }
