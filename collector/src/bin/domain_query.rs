@@ -6,7 +6,7 @@ use clap::{App, Arg};
 use std::time::SystemTime;
 use damp::model::connect;
 use damp::model::domain::Domain;
-use damp::model::record::NewRecord;
+use damp::model::record::{NewRecord, Record};
 use damp::{end_processing_marker, schema, start_processing_marker};
 use diesel::prelude::*;
 use diesel::QueryDsl;
@@ -91,6 +91,8 @@ impl DnsQuery {
             .dns_client
             .query(&name, DNSClass::IN, query_type)
             .unwrap();
+
+        let mut parent_record: Option<i64> = None;
         for answer in response.answers().iter() {
             let asn: Option<i32> = match answer.rdata().to_ip_addr() {
                 Some(ip) => match self.maxmind.lookup::<Isp>(ip) {
@@ -105,7 +107,7 @@ impl DnsQuery {
             let record = NewRecord {
                 domain: &domain.rowid,
                 is_www: &is_www,
-                parent: None, // TODO
+                parent: parent_record.as_ref(),
                 response_code: &(response.response_code() as i32),
                 record_type: Some(&record_type),
                 ttl: Some(&ttl),
@@ -117,7 +119,22 @@ impl DnsQuery {
             match diesel::insert_into(schema::record::table)
                 .values(&record)
                 .execute(&self.sql_client) {
-                Ok(_) => {},
+                Ok(_) => {
+                    use damp::schema::record::dsl::*;
+                    // Set the parent to the value of the row just inserted. As we're
+                    // presently single-threaded, the 'highest' rowid should be the one.
+                    // It's worth noting that the authors of diesel explicitly oppose to
+                    // the use of `sqlite3_last_insert_rowid`.
+                    //
+                    // See Also: https://github.com/diesel-rs/diesel/issues/376
+                    match parent_record {
+                        None => {
+                            let parent_rowid = record.order(rowid.desc()).first::<Record>(&self.sql_client).unwrap().rowid;
+                            parent_record = Some(parent_rowid);
+                        },
+                        Some(_) => {}
+                    }
+                },
                 Err(e) => println!("Unable to insert record - {}", e.to_string())
             };
         }
