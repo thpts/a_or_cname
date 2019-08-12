@@ -3,11 +3,10 @@ extern crate damp;
 extern crate failure;
 
 use clap::{App, Arg};
-use std::time::SystemTime;
 use damp::model::connect;
 use damp::model::domain::Domain;
 use damp::model::record::{NewRecord, Record};
-use damp::{end_processing_marker, schema, start_processing_marker};
+use damp::{end_processing_marker, schema, start_processing_marker, unix_time};
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use failure::Error;
@@ -86,13 +85,42 @@ impl DnsQuery {
         };
         let name: Name = Name::from_ascii(query).unwrap();
         // FIXME: Remove unwrap here
-        let query_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as i64;
+        let mut query_time = unix_time();
         let response: DnsResponse = self
             .dns_client
             .query(&name, DNSClass::IN, query_type)
             .unwrap();
 
-        let mut parent_record: Option<i64> = None;
+        self.insert_record(&response, &domain.rowid, &is_www, &query_time, None);
+
+        let parent_rowid = self.get_last_row();
+
+        // Process NS records and convert the host name returned into A/AAAA records
+        if query_type == RecordType::NS {
+            for answer in response.answers().iter() {
+                query_time = unix_time();
+                let answer_name = self.parse_address(answer.rdata()).unwrap();
+                let ns_name: Name = Name::from_ascii(answer_name).unwrap();
+
+                let a_res: DnsResponse = self
+                    .dns_client
+                    .query(&ns_name, DNSClass::IN, RecordType::A)
+                    .unwrap();
+
+                self.insert_record(&a_res, &domain.rowid, &false, &query_time, parent_rowid.as_ref(),);
+
+                let aaaa_res: DnsResponse = self
+                    .dns_client
+                    .query(&ns_name, DNSClass::IN, RecordType::AAAA)
+                    .unwrap();
+                self.insert_record(&aaaa_res, &domain.rowid, &false, &query_time, parent_rowid.as_ref());
+            }
+        }
+    }
+
+    fn insert_record(
+        &self,response: &DnsResponse, row_id: &i64, is_www: &bool, query_time: &i64, parent: Option<&i64>) {
+        let mut parent_record: Option<i64> = parent.cloned();
         for answer in response.answers().iter() {
             let asn: Option<i32> = match answer.rdata().to_ip_addr() {
                 Some(ip) => match self.maxmind.lookup::<Isp>(ip) {
@@ -105,22 +133,22 @@ impl DnsQuery {
             let record_type = answer.record_type().to_string();
             let ttl = answer.ttl() as i32;
             let record = NewRecord {
-                domain: &domain.rowid,
-                is_www: &is_www,
+                domain: row_id,
+                is_www,
                 parent: parent_record.as_ref(),
                 response_code: &(response.response_code() as i32),
                 record_type: Some(&record_type),
                 ttl: Some(&ttl),
                 address: address.as_ref().map(String::as_str),
                 asn: asn.as_ref(),
-                query_time: &query_time,
+                query_time,
             };
 
             match diesel::insert_into(schema::record::table)
                 .values(&record)
-                .execute(&self.sql_client) {
+                .execute(&self.sql_client)
+            {
                 Ok(_) => {
-                    use damp::schema::record::dsl::*;
                     // Set the parent to the value of the row just inserted. As we're
                     // presently single-threaded, the 'highest' rowid should be the one.
                     // It's worth noting that the authors of diesel explicitly oppose to
@@ -129,15 +157,24 @@ impl DnsQuery {
                     // See Also: https://github.com/diesel-rs/diesel/issues/376
                     match parent_record {
                         None => {
-                            let parent_rowid = record.order(rowid.desc()).first::<Record>(&self.sql_client).unwrap().rowid;
-                            parent_record = Some(parent_rowid);
-                        },
+                            parent_record = self.get_last_row();
+                        }
                         Some(_) => {}
                     }
-                },
-                Err(e) => println!("Unable to insert record - {}", e.to_string())
+                }
+                Err(e) => println!("Unable to insert record - {}", e.to_string()),
             };
         }
+    }
+
+    fn get_last_row(&self) -> Option<i64> {
+        use damp::schema::record::dsl::*;
+        let parent_rowid = record
+            .order(rowid.desc())
+            .first::<Record>(&self.sql_client)
+            .unwrap()
+            .rowid;
+        return Some(parent_rowid);
     }
 
     /// Process all domains and get all records for the given query types.
