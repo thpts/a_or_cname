@@ -3,6 +3,7 @@ extern crate damp;
 extern crate failure;
 
 use clap::{App, Arg};
+use std::time::SystemTime;
 use damp::model::connect;
 use damp::model::domain::Domain;
 use damp::model::record::NewRecord;
@@ -72,58 +73,90 @@ impl DnsQuery {
         })
     }
 
-    /// Perform queries of all query types, returning a vector containing all
-    /// the answers for the given domain.
+    /// Perform queries of all query types.
     ///
     /// # Arguments
     /// * `domain` - The [Domain](crate::model::domain::Domain)
-    pub fn query_domain(&self, domain: &Domain) {
-        let name: Name = Name::from_ascii(&domain.clone().fqdn).unwrap();
-        for query_type in &self.query_types {
-            // FIXME: Remove unwrap here
-            let response: DnsResponse = self
-                .dns_client
-                .query(&name, DNSClass::IN, *query_type)
-                .unwrap();
-            for answer in response.answers().iter() {
-                let asn: Option<i32> = match answer.rdata().to_ip_addr() {
-                    Some(ip) => match self.maxmind.lookup::<Isp>(ip) {
-                        Ok(res) => res.autonomous_system_number.map(|m| m as i32),
-                        Err(_) => None,
-                    },
-                    None => None,
-                };
-                let address = self.parse_address(answer.rdata());
-                let record_type = answer.record_type().to_string();
-                let ttl = answer.ttl() as i32;
-                let record = NewRecord {
-                    domain: &domain.rowid,
-                    parent: None, // TODO
-                    response_code: &(response.response_code() as i32),
-                    record_type: Some(&record_type),
-                    ttl: Some(&ttl),
-                    address: address.as_ref().map(String::as_str),
-                    asn: asn.as_ref(),
-                    query_time: &0,
-                };
+    /// * `query_type` - The DNS RecordType to query
+    /// * `is_www` - If set true, query against 'www.' of the domain
+    pub fn query_domain(&self, domain: &Domain, query_type: RecordType, is_www: bool) {
+        let query: String = match is_www {
+            true => format!("www.{}", domain.clone().fqdn),
+            false => domain.clone().fqdn.clone(),
+        };
+        let name: Name = Name::from_ascii(query).unwrap();
+        // FIXME: Remove unwrap here
+        let query_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as i64;
+        let response: DnsResponse = self
+            .dns_client
+            .query(&name, DNSClass::IN, query_type)
+            .unwrap();
+        for answer in response.answers().iter() {
+            let asn: Option<i32> = match answer.rdata().to_ip_addr() {
+                Some(ip) => match self.maxmind.lookup::<Isp>(ip) {
+                    Ok(res) => res.autonomous_system_number.map(|m| m as i32),
+                    Err(_) => None,
+                },
+                None => None,
+            };
+            let address = self.parse_address(answer.rdata());
+            let record_type = answer.record_type().to_string();
+            let ttl = answer.ttl() as i32;
+            let record = NewRecord {
+                domain: &domain.rowid,
+                is_www: &is_www,
+                parent: None, // TODO
+                response_code: &(response.response_code() as i32),
+                record_type: Some(&record_type),
+                ttl: Some(&ttl),
+                address: address.as_ref().map(String::as_str),
+                asn: asn.as_ref(),
+                query_time: &query_time,
+            };
 
-                diesel::insert_into(schema::record::table)
-                    .values(&record)
-                    .execute(&self.sql_client);
+            match diesel::insert_into(schema::record::table)
+                .values(&record)
+                .execute(&self.sql_client) {
+                Ok(_) => {},
+                Err(e) => println!("Unable to insert record - {}", e.to_string())
+            };
+        }
+    }
+
+    /// Process all domains and get all records for the given query types.
+    /// The structure of the queries we'll do looks like:
+    /// ```text
+    ///     apex ─┬──  A
+    ///           ├──  AAAA
+    ///           ├──  NS
+    ///           │    ├── A
+    ///           │    └── AAAA
+    ///           └──  www
+    ///                ├── A
+    ///                └── AAAA
+    /// ```
+    /// There is no need for performing NS queries against www as we assume that nobody is
+    /// (arguably mis-)configuring their DNS hierarchy to put www as apex in a delegate zone.
+    /// Also, to aid better identification of the name servers, we perform an A and AAAA query
+    /// against any hosts in the NS set.
+    pub fn process_all(&self) {
+        use damp::schema::domain::dsl::*;
+        let domains = domain.load::<Domain>(&self.sql_client).unwrap();
+
+        for d in &domains {
+            for query_type in &self.query_types {
+                self.query_domain(d, *query_type, false);
+                // Perform www queries
+                match query_type {
+                    RecordType::A | RecordType::AAAA => self.query_domain(d, *query_type, true),
+                    _ => {}
+                }
             }
         }
     }
 
-    /// Process all domains and get all records
-    pub fn process_all(&self) {
-        use damp::schema::domain::dsl::*;
-        let domains = domain.load::<Domain>(&self.sql_client).unwrap();
-        for d in &domains {
-            self.query_domain(d);
-        }
-    }
-
     /// Return total number of domains available to query in our dataset
+    /// TODO: Consider pagination or breaking up queries
     pub fn total_domains(&self) -> i64 {
         use damp::schema::domain::dsl::*;
         let count = domain.count().load(&self.sql_client).unwrap();

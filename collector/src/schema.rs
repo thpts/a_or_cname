@@ -52,6 +52,10 @@ table! {
         /// refers to the row-id of the parent.
         parent -> Nullable<BigInt>,
 
+        /// We query both apex and for www. This boolean is set true if the
+        /// original query is for www - e.g. "www.example.com".
+        is_www -> Bool,
+
         /// RCODE value from the Answer (see
         /// [RFC 1035 &sect; 4.1.1](https://tools.ietf.org/html/rfc1035#section-4.1.1)) - this value
         /// is persisted to distinguish failures such as receiving `NXDOMAIN`.
