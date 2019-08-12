@@ -4,8 +4,8 @@ use super::super::schema::record;
 pub struct Record {
     pub rowid: i64,
     pub domain: i64,
-    pub is_www: bool,
     pub parent: Option<i64>,
+    pub is_www: bool,
     pub response_code: i32,
     pub record_type: Option<String>,
     pub ttl: Option<i32>,
