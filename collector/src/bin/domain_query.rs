@@ -13,6 +13,7 @@ use failure::Error;
 use maxminddb::geoip2::Isp;
 use maxminddb::Reader;
 use std::net::SocketAddr;
+use std::{thread, time};
 use trust_dns::client::{Client, SyncClient};
 use trust_dns::op::DnsResponse;
 use trust_dns::rr::{DNSClass, Name, RData, RecordType};
@@ -36,6 +37,8 @@ For the sakes of keeping the code complexity low, this process is both
 synchronous and blocking in nature and any delays by one query will slow down or
 stop subsequent requests.
 "#;
+
+static SLEEP_PERIOD: &'static time::Duration = &time::Duration::from_millis(500);
 
 struct DnsQuery {
     dns_client: SyncClient<UdpClientConnection>,
@@ -86,10 +89,14 @@ impl DnsQuery {
         let name: Name = Name::from_ascii(query).unwrap();
         // FIXME: Remove unwrap here
         let mut query_time = unix_time();
-        let response: DnsResponse = self
-            .dns_client
-            .query(&name, DNSClass::IN, query_type)
-            .unwrap();
+        let response: DnsResponse = match self.dns_client.query(&name, DNSClass::IN, query_type) {
+            Ok(r) => r,
+            Err(_) => {
+                thread::sleep(*SLEEP_PERIOD);
+                self.query_domain(domain, query_type, is_www);
+                return;
+            }
+        };
 
         self.insert_record(&response, &domain.rowid, &is_www, &query_time, None);
 
@@ -102,24 +109,52 @@ impl DnsQuery {
                 let answer_name = self.parse_address(answer.rdata()).unwrap();
                 let ns_name: Name = Name::from_ascii(answer_name).unwrap();
 
-                let a_res: DnsResponse = self
-                    .dns_client
-                    .query(&ns_name, DNSClass::IN, RecordType::A)
-                    .unwrap();
+                let a_res: DnsResponse =
+                    match self.dns_client.query(&ns_name, DNSClass::IN, RecordType::A) {
+                        Ok(r) => r,
+                        Err(_) => {
+                            thread::sleep(*SLEEP_PERIOD);
+                            self.query_domain(domain, query_type, false);
+                            return;
+                        }
+                    };
 
-                self.insert_record(&a_res, &domain.rowid, &false, &query_time, parent_rowid.as_ref(),);
+                self.insert_record(
+                    &a_res,
+                    &domain.rowid,
+                    &false,
+                    &query_time,
+                    parent_rowid.as_ref(),
+                );
 
-                let aaaa_res: DnsResponse = self
-                    .dns_client
-                    .query(&ns_name, DNSClass::IN, RecordType::AAAA)
-                    .unwrap();
-                self.insert_record(&aaaa_res, &domain.rowid, &false, &query_time, parent_rowid.as_ref());
+                let aaaa_res: DnsResponse =
+                    match self.dns_client.query(&ns_name, DNSClass::IN, RecordType::AAAA) {
+                    Ok(r) => r,
+                    Err(_) => {
+                        thread::sleep(*SLEEP_PERIOD);
+                        self.query_domain(domain, query_type, false);
+                        return;
+                    }
+                };
+                self.insert_record(
+                    &aaaa_res,
+                    &domain.rowid,
+                    &false,
+                    &query_time,
+                    parent_rowid.as_ref(),
+                );
             }
         }
     }
 
     fn insert_record(
-        &self,response: &DnsResponse, row_id: &i64, is_www: &bool, query_time: &i64, parent: Option<&i64>) {
+        &self,
+        response: &DnsResponse,
+        row_id: &i64,
+        is_www: &bool,
+        query_time: &i64,
+        parent: Option<&i64>,
+    ) {
         let mut parent_record: Option<i64> = parent.cloned();
         for answer in response.answers().iter() {
             let asn: Option<i32> = match answer.rdata().to_ip_addr() {
