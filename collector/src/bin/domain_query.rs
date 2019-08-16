@@ -86,8 +86,13 @@ impl DnsQuery {
             true => format!("www.{}", domain.clone().fqdn),
             false => domain.clone().fqdn.clone(),
         };
-        let name: Name = Name::from_ascii(query).unwrap();
-        // FIXME: Remove unwrap here
+        let name: Name = match Name::from_ascii(query){
+            Ok(n) => n,
+            Err(e) => {
+                println!("Unable to parse domain - {}", e.to_string());
+                return;
+            }
+        };
         let mut query_time = unix_time();
         let response: DnsResponse = match self.dns_client.query(&name, DNSClass::IN, query_type) {
             Ok(r) => r,
@@ -107,7 +112,13 @@ impl DnsQuery {
             for answer in response.answers().iter() {
                 query_time = unix_time();
                 let answer_name = self.parse_address(answer.rdata()).unwrap();
-                let ns_name: Name = Name::from_ascii(answer_name).unwrap();
+                let ns_name: Name = match Name::from_ascii(answer_name) {
+                    Ok(n) => n,
+                    Err(e) => {
+                        println!("Unable to parse NS record - {}", e.to_string());
+                        return;
+                    }
+                };
 
                 let a_res: DnsResponse =
                     match self.dns_client.query(&ns_name, DNSClass::IN, RecordType::A) {
