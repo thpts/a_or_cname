@@ -22,7 +22,7 @@ path = "src/bin/domain_load.rs"
 
 [dependencies]
 failure = "*"
-trust-dns = "0.15.1"
+trust-dns = "0.17.0"
 maxminddb = "0.13.0"
 publicsuffix = "1.5.2"
 clap = "2.32.0"
