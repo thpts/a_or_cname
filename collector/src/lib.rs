@@ -2,19 +2,28 @@
 extern crate diesel;
 
 use chrono::prelude::Utc;
-use std::time::Instant;
-use std::time::SystemTime;
+use std::{thread,time};
+use std::time::{Instant,SystemTime};
 
 pub mod dns;
 pub mod model;
 pub mod schema;
+
+static SLEEP_PERIOD: &'static time::Duration = &time::Duration::from_millis(100);
+
+macro_rules! debug_msg {
+ ($fmt:expr, $($arg:tt)+) => {
+    let msg = format!($fmt, $($arg)+);
+    println!("{}: {}", Utc::now().to_rfc3339(), msg);
+ };
+}
 
 /// Print timestamp and return Instant to assist in calculating run duration
 ///
 /// # Arguments
 /// * `message` - String template to print to STDOUT
 pub fn start_processing_marker(message: String) -> Instant {
-    println!("{}: {}", Utc::now().to_rfc3339(), message);
+    debug_msg!("{}", message);
     return Instant::now();
 }
 
@@ -25,12 +34,7 @@ pub fn start_processing_marker(message: String) -> Instant {
 /// * `start` - Starting point to calculate from
 pub fn end_processing_marker(message: &str, start: Instant) {
     let duration = start.elapsed();
-    println!(
-        "{}: {} - taking {} seconds",
-        Utc::now().to_rfc3339(),
-        message,
-        duration.as_secs()
-    );
+    debug_msg!("{} - taking {} seconds", message, duration.as_secs());
 }
 
 /// Return the current timestamp as seconds from UNIX Epoch
@@ -39,4 +43,10 @@ pub fn unix_time() -> i64 {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs() as i64;
+}
+
+/// Log, then sleep for a given period
+pub fn stall(message: String) {
+    debug_msg!("Sleeping for {:?} - {}", SLEEP_PERIOD, message);
+    thread::sleep(*SLEEP_PERIOD);
 }

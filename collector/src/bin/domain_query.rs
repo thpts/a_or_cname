@@ -6,14 +6,13 @@ use clap::{App, Arg};
 use damp::model::connect;
 use damp::model::domain::Domain;
 use damp::model::record::{NewRecord, Record};
-use damp::{end_processing_marker, schema, start_processing_marker, unix_time};
+use damp::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use failure::Error;
 use maxminddb::geoip2::Isp;
 use maxminddb::Reader;
 use std::net::SocketAddr;
-use std::{thread, time};
 use trust_dns::client::{Client, SyncClient};
 use trust_dns::op::DnsResponse;
 use trust_dns::rr::{DNSClass, Name, RData, RecordType};
@@ -37,8 +36,6 @@ For the sakes of keeping the code complexity low, this process is both
 synchronous and blocking in nature and any delays by one query will slow down or
 stop subsequent requests.
 "#;
-
-static SLEEP_PERIOD: &'static time::Duration = &time::Duration::from_millis(500);
 
 struct DnsQuery {
     dns_client: SyncClient<UdpClientConnection>,
@@ -96,8 +93,8 @@ impl DnsQuery {
         let mut query_time = unix_time();
         let response: DnsResponse = match self.dns_client.query(&name, DNSClass::IN, query_type) {
             Ok(r) => r,
-            Err(_) => {
-                thread::sleep(*SLEEP_PERIOD);
+            Err(e) => {
+                stall(e.to_string());
                 self.query_domain(domain, query_type, is_www);
                 return;
             }
@@ -123,8 +120,8 @@ impl DnsQuery {
                 let a_res: DnsResponse =
                     match self.dns_client.query(&ns_name, DNSClass::IN, RecordType::A) {
                         Ok(r) => r,
-                        Err(_) => {
-                            thread::sleep(*SLEEP_PERIOD);
+                        Err(e) => {
+                            stall(e.to_string());
                             self.query_domain(domain, query_type, false);
                             return;
                         }
@@ -141,8 +138,8 @@ impl DnsQuery {
                 let aaaa_res: DnsResponse =
                     match self.dns_client.query(&ns_name, DNSClass::IN, RecordType::AAAA) {
                     Ok(r) => r,
-                    Err(_) => {
-                        thread::sleep(*SLEEP_PERIOD);
+                    Err(e) => {
+                        stall(e.to_string());
                         self.query_domain(domain, query_type, false);
                         return;
                     }
