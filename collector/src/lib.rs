@@ -11,6 +11,16 @@ pub mod schema;
 
 static SLEEP_PERIOD: &'static time::Duration = &time::Duration::from_millis(100);
 
+/// Log out time stamp with message
+/// # Arguments
+/// * `fmt` - String formatting to apply to variables, uses `format!`
+/// * `args` - All subsequent arguments form variables in use
+///
+/// # Examples
+/// ```
+/// debug_msg!();
+/// debug_msg!("Received error - {}", "something not right")
+/// ```
 macro_rules! debug_msg {
  ($fmt:expr, $($arg:tt)+) => {
     let msg = format!($fmt, $($arg)+);
