@@ -1,0 +1,185 @@
+---
+title: "DNS and CDN Consolidation - and the Fundamental Change to the Architecture of the Web"
+author:
+  - Dan York
+  - Thomas Peterson
+date: "`r format(Sys.time(), '%d %B %Y')`"
+classoption: twocolumn
+output: 
+  pdf_document:
+    keep_tex: true
+    toc: no
+  html_document:
+    toc: yes
+---
+
+# Notice
+
+This notebook is intended to be used for collation and initial writeups of the analysis
+of our work, and will not look anything like final publication.
+
+---
+
+```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo=FALSE, results="hide")
+
+library(DBI)
+
+if(!exists("dataDir")) {
+  dataDir <- "../data/"
+}
+
+if(!exists("resourcesDir")) {
+  resourcesDir <- "../resources/"
+}
+
+mmdb <- system.file("extdata",paste0(resourcesDir, "2019-08-15/", "GeoLite2-ASN.mmdb"), 
+                    package = "rgeolocate")
+
+con <- dbConnect(RSQLite::SQLite(), paste0(dataDir, "journal-cyber-policy-2019/", "2018-08-16-snapshot.sqlite"))
+
+```
+
+# Abstract
+
+When the Web began, the relationship was between web clients (browsers) and web
+servers that existed on a single IP address. Thirty years later, a fundamental
+shift has occurred where browsers no longer interact directly with the original
+web servers. Instead a significant percentage of websites use a content
+distribution network (CDN) or a cloud provider offering CDN/caching capabilities.
+
+Our research began in an attempt to answer a question that arose within the
+Domain Name System (DNS) Operations working group in the Internet Engineering
+Task Force (IETF) about the actual usage of “CNAME” records in DNS to redirect
+the “www” subdomain to another address. In our initial analysis of the Alexa top
+1 million domain names, we found 47% of all “www” subdomains were using CNAME
+records for some type of redirection. Investigating further, we found a sizeable
+percentage of sites hosted by a CDN or cloud provider. Further, these providers
+appeared comprised of a small set including Google, Amazon, Akamai, and
+Cloudflare.
+
+In our research, we also observed that a significant percentage of the
+authoritative name servers for these domains were also in a small of set of
+DNS hosting providers, some of which also provided CDN/cloud services.
+The emergence of these small sets of providers, and the overlap between the
+CDN and DNS providers, caused us to want to dig further to understand the true
+level of consolidation within the CDN/cloud/caching infrastructure of the Web
+and also within the DNS of the Internet.
+
+Our research and analysis for this paper will focus on these questions:
+
+* How many domains are hosted by known CDNs or cloud providers?
+* How much consolidation has occurred within the CDNs and cloud providers?
+* Related, how much consolidation has occurred within the DNS hosting providers,
+and how does the choice of hosting provider relate to DNS hosting?
+
+# Keywords
+
+DNS; content delivery network; cloud computing
+
+# Introduction
+
+# Materials and Methods
+
+In order to determine both the website hosting provider and the DNS hosting
+provider for a given domain, we performed a series of DNS queries - the A, AAAA,
+and NS records for both the provided host name, with additional A and AAAA record
+queries performed against the NS records. In addition, we performed queries
+against the A and AAAA records for the "www" subdomain on each hostname. All
+successful responses for A and AAAA records had their IP address's respective
+Autonomous System Number looked up against a Maxmind GeoLite2 databased which
+was downloaded at the same time as the list of hostnames.
+
+All code, data, analysis and this report are available on GitHub.
+
+# Results
+
+## Identification of DNS providers
+We have identified two specific means to identify for a given host name the DNS 
+hosting provider, firstly performing matching against [known DNS providers](https://en.wikipedia.org/wiki/List_of_managed_DNS_providers), in
+addition to including other known DNS registrars acting as hosting providers, as
+well as the hosting providers or CDNs themselves. This process will exclude
+scenarios where the host name's delegated nameservers are not assigned to a known
+host name.
+```{r}
+nameServerList <- list(
+
+  # DNS Providers
+  c("DNS Provider", "Dyn", "dynect."),
+  c("DNS Provider", "NS1", "nsone.net."),
+  c("DNS Provider", "Verisign", "verisigndns"),
+  c("DNS Provider", "UltraDNS", "ultradns."),
+  c("DNS Provider", "DNSimple", "dnsimple.com."),
+  c("DNS Provider", "ClouDNS", "cloudns.net."),
+  c("DNS Provider", "CDNetworks", "cdnetdns."),
+  c("DNS Provider", "CloudfloorDNS", "cloudfloordns."),
+  c("DNS Provider", "DNS Made Easy", "dnsmadeeasy.com"),
+  c("DNS Provider", "EasyDNS", "easydns."),
+  c("DNS Provider", "No-IP", "no-ip.com."),
+  c("DNS Provider", "Constellix", "constellix."),
+
+  # Registrars
+  c("Registrar", "Namecheap", "registrar-servers.com."),
+  c("Registrar", "Gandi", "gandi.net."),
+  c("Registrar", "Godaddy", "domaincontrol.com."),
+  c("Registrar", "123-reg", "123-reg.co.uk."),
+  c("Registrar", "eNom", "name-services.com."),
+
+  # Hosting Providers
+  c("Hosting Provider", "AWS Route53", ".awsdns-"),
+  c("Hosting Provider", "Azure", "azure-dns"),
+  c("Hosting Provider", "Google", "googledomains.com"),
+  c("Hosting Provider", "Alibaba", "alibabadns.com."),
+  c("Hosting Provider", "Linode", "linode.com."),
+  c("Hosting Provider", "DigitalOcean", "digitalocean.com."),
+  c("Hosting Provider", "Godaddy", "secureserver.net."),
+  c("Hosting Provider", "OVH", "ovh.net."),
+
+  # Content Delivery Networks
+  c("Content Delivery Network", "CloudFlare", "cloudflare.com."),
+  c("Content Delivery Network", "Akamai", "akam.net"),
+
+  # Content Providers
+  c("Content Provider", "Wordpress", "wordpress.com"),
+  c("Content Provider", "Google", "google.com."),
+  c("Content Provider", "Squarespace", "squarespacedns.com.")
+)
+```
+
+Another method to identifying DNS hosting providers is to use the autonomous
+system number assigned to any IP addresses that are. This may fail in scenarios
+where the DNS provider does not have an autonomous system number of their own,
+or utilise other networks to host their authoritative servers. For example, 
+`qq.com` ranked #14, uses 10 different networks. Despite this, there can be a
+correlation between many of the large, notable hosting providers and CDNs and
+the autonomous system allocations they use.
+
+```
+-- For each domain, list each distinct ASN in use
+SELECT DISTINCT domain, asn FROM record
+WHERE record_type IN("A", "AAAA")
+AND response_code = 0
+AND is_www = 0
+AND parent IS NOT NULL
+LIMIT 50
+```
+
+```{sql, connection=con, output.var="ns_asn_count"}
+-- For each domain, count the total number of distinct ASNs used by the
+-- authoritative name servers.
+SELECT COUNT(DISTINCT asn) FROM record
+WHERE record_type IN("A", "AAAA")
+AND response_code = 0
+AND is_www = 0
+AND parent IS NOT NULL
+GROUP BY domain
+LIMIT 50
+```
+
+# Discussion
+
+# Acknowledgments
+
+# Declaration of interest statement
+
+# References
