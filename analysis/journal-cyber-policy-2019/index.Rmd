@@ -26,18 +26,20 @@ knitr::opts_chunk$set(echo=FALSE, results="hide")
 library(DBI)
 
 if(!exists("dataDir")) {
-  dataDir <- "../data/"
+  dataDir <- "../../data/"
 }
 
 if(!exists("resourcesDir")) {
-  resourcesDir <- "../resources/"
+  resourcesDir <- "../../resources/"
 }
 
 mmdb <- system.file("extdata",paste0(resourcesDir, "2019-08-15/", "GeoLite2-ASN.mmdb"), 
                     package = "rgeolocate")
 
-con <- dbConnect(RSQLite::SQLite(), paste0(dataDir, "journal-cyber-policy-2019/", "2018-08-16-snapshot.sqlite"))
 
+sql_file <- paste0(dataDir, "journal-cyber-policy-2019/", "2018-08-16-snapshot.sqlite")
+
+con <- dbConnect(RSQLite::SQLite(), sql_file)
 ```
 
 # Abstract
