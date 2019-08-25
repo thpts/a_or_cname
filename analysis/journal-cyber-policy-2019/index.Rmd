@@ -24,6 +24,7 @@ of our work, and will not look anything like final publication.
 knitr::opts_chunk$set(echo=FALSE, results="hide")
 
 library(DBI)
+library(ggplot2)
 
 if(!exists("dataDir")) {
   dataDir <- "../../data/"
@@ -165,7 +166,12 @@ AND response_code = 0
 AND is_www = 0
 AND parent IS NOT NULL
 GROUP BY domain
-LIMIT 50
+```
+
+```{r}
+ggplot(ns_asn_count, aes(ns_asn_total)) +
+  geom_freqpoly(binwidth = 1) +
+  xlim(1, 13)
 ```
 
 # Discussion
