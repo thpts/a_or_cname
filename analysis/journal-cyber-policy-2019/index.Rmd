@@ -156,20 +156,10 @@ or utilise other networks to host their authoritative servers. For example,
 correlation between many of the large, notable hosting providers and CDNs and
 the autonomous system allocations they use.
 
-```
--- For each domain, list each distinct ASN in use
-SELECT DISTINCT domain, asn FROM record
-WHERE record_type IN("A", "AAAA")
-AND response_code = 0
-AND is_www = 0
-AND parent IS NOT NULL
-LIMIT 50
-```
-
 ```{sql, connection=con, output.var="ns_asn_count"}
 -- For each domain, count the total number of distinct ASNs used by the
 -- authoritative name servers.
-SELECT COUNT(DISTINCT asn) FROM record
+SELECT COUNT(DISTINCT asn) AS ns_asn_total FROM `record`
 WHERE record_type IN("A", "AAAA")
 AND response_code = 0
 AND is_www = 0
