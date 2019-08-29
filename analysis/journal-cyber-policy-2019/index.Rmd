@@ -21,10 +21,11 @@ of our work, and will not look anything like final publication.
 ---
 
 ```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
-knitr::opts_chunk$set(echo=FALSE, results="hide")
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, results="hide")
 
 library(DBI)
 library(ggplot2)
+library(dplyr)
 
 if(!exists("dataDir")) {
   dataDir <- "../../data/"
@@ -37,8 +38,7 @@ if(!exists("resourcesDir")) {
 mmdb <- system.file("extdata",paste0(resourcesDir, "2019-08-15/", "GeoLite2-ASN.mmdb"), 
                     package = "rgeolocate")
 
-
-sql_file <- paste0(dataDir, "journal-cyber-policy-2019/", "2018-08-16-snapshot.sqlite")
+sql_file <- paste0(dataDir, "journal-cyber-policy-2019/", "2018-08-16-snapshot2.sqlite")
 
 con <- dbConnect(RSQLite::SQLite(), sql_file)
 ```
@@ -83,6 +83,7 @@ DNS; content delivery network; cloud computing
 # Introduction
 
 # Materials and Methods
+TODO: Describe tranco list and hostname acquisition
 
 In order to determine both the website hosting provider and the DNS hosting
 provider for a given domain, we performed a series of DNS queries - the A, AAAA,
@@ -93,21 +94,53 @@ successful responses for A and AAAA records had their IP address's respective
 Autonomous System Number looked up against a Maxmind GeoLite2 databased which
 was downloaded at the same time as the list of hostnames.
 
-All code, data, analysis and this report are available on GitHub.
+We have identified two specific means to identify the hosting provider(s) used
+for a given host name within our data set. The first is to match against known
+host names of providers,
 
-# Results
-
-## Identification of DNS providers
 We have identified two specific means to identify for a given host name the DNS 
 hosting provider, firstly performing matching against [known DNS providers](https://en.wikipedia.org/wiki/List_of_managed_DNS_providers), in
 addition to including other known DNS registrars acting as hosting providers, as
 well as the hosting providers or CDNs themselves. This process will exclude
 scenarios where the host name's delegated nameservers are not assigned to a known
 host name.
+
+Another method to identifying DNS hosting providers is to use the autonomous
+system number assigned to any IP addresses that are. This may fail to identify
+providers in scenarios where the DNS provider does not have an autonomous system
+number of their own, or utilise other networks to host their authoritative
+servers. For example,  `qq.com` ranked #14, utilising 10 different networks.
+Despite this, there can be a correlation between many of the large, notable
+hosting providers and CDNs and the autonomous system allocations they use.
+
+
+All code, data, analysis and this report are available on GitHub.
+
+# Results
+
+## Hosting Providers
+This method of using Autonomous System Numbers may also fail to consider websites
+which are signficicantly heterogenous in nature, whilst the initial web page may
+be served from...
+
+## DNS Providers
+
+### Identification of DNS providers
+
+
+```{sql, connection=con, output.var="ns_cname"}
+-- Select all successful records (including www) for nameservers
+SELECT address FROM `record`
+WHERE record_type = "NS"
+AND response_code = 0
+```
+
 ```{r}
 nameServerList <- list(
 
   # DNS Providers
+  # Note these must partially matched, as many DNS providers use multiple TLDs
+  # to ensure resiliency.
   c("DNS Provider", "Dyn", "dynect."),
   c("DNS Provider", "NS1", "nsone.net."),
   c("DNS Provider", "Verisign", "verisigndns"),
@@ -149,13 +182,6 @@ nameServerList <- list(
 )
 ```
 
-Another method to identifying DNS hosting providers is to use the autonomous
-system number assigned to any IP addresses that are. This may fail in scenarios
-where the DNS provider does not have an autonomous system number of their own,
-or utilise other networks to host their authoritative servers. For example, 
-`qq.com` ranked #14, uses 10 different networks. Despite this, there can be a
-correlation between many of the large, notable hosting providers and CDNs and
-the autonomous system allocations they use.
 
 ```{sql, connection=con, output.var="ns_asn_count"}
 -- For each domain, count the total number of distinct ASNs used by the
@@ -169,10 +195,15 @@ GROUP BY domain
 ```
 
 ```{r}
-ggplot(ns_asn_count, aes(ns_asn_total)) +
-  geom_freqpoly(binwidth = 1) +
-  xlim(1, 13)
+ggplot(ns_asn_count, aes(ns_asn_total, colour = ns_asn_total)) +
+  geom_freqpoly(aes(y = stat(count / sum(count)))) +
+  scale_x_continuous(breaks=c(1:13), limits=c(1,13)) +
+  #scale_y_continuous(labels = scales::percent, limits=c(0,1)) +
+  ggtitle("Autonomous System Number count within authoritative servers") +
+  ylab("Percent of domains") +
+  xlab("Unique ASN count per domain")
 ```
+
 
 # Discussion
 
